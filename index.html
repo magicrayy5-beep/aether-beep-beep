@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AETHER V17 | ABSOLUTE STABLE</title>
+    <title>AETHER V18 | DYNAMIC UI</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -12,60 +12,44 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&family=JetBrains+Mono&display=swap');
 
-        * { 
-            margin: 0; 
-            padding: 0; 
-            box-sizing: border-box; 
-            -webkit-tap-highlight-color: transparent; 
-        }
+        /* RESET TOTAL */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         
-        /* Cegah scrolling liar di body */
+        :root {
+            --safe-bottom: env(safe-area-inset-bottom);
+        }
+
         body, html { 
             width: 100%; 
-            height: 100%; 
+            height: 100dvh; /* Dynamic Viewport Height - Fix Bar Browser */
             overflow: hidden; 
             background: #ffffff; 
             font-family: 'Plus Jakarta Sans', sans-serif;
-            position: fixed;
         }
 
-        /* Container utama pakai flex untuk layout desktop */
-        .master-container {
-            display: flex;
+        /* Container Pake Grid: Header (Auto), Content (1fr), Input (Auto) */
+        .app-grid {
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            height: 100dvh;
             width: 100vw;
-            height: 100vh;
-            position: relative;
         }
 
-        /* --- SIDEBAR CHAT (DIPAKSA MUNCUL DI MOBILE) --- */
-        .chat-section {
-            width: 400px;
-            min-width: 400px;
-            display: flex;
-            flex-direction: column;
-            background: #fdf2f8;
-            border-right: 1px solid #f1f5f9;
-            height: 100%;
-            position: relative;
-        }
-
-        /* Header Tetap di Atas */
-        .chat-header {
-            padding: 15px 20px;
+        /* HEADER */
+        header {
             background: white;
+            padding: 15px 20px;
             border-bottom: 2px solid #fce7f3;
             display: flex;
             align-items: center;
-            flex-shrink: 0;
-            z-index: 20;
+            justify-content: space-between;
         }
 
-        /* Area Chat dengan padding bottom agar tidak ketutup input */
-        .chat-area {
-            flex: 1;
+        /* CHAT AREA */
+        #chat-list {
             overflow-y: auto;
             padding: 20px;
-            padding-bottom: 100px; /* Jarak aman untuk input */
+            background: #fdf2f8;
             display: flex;
             flex-direction: column;
             gap: 15px;
@@ -82,134 +66,124 @@
         .ai-msg { background: white; border: 1px solid #fce7f3; align-self: flex-start; border-bottom-left-radius: 4px; }
         .user-msg { background: #0f172a; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
 
-        /* AREA INPUT - DITETAPKAN SECARA ABSOLUT DI BAWAH */
-        .input-sticky-container {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            padding: 15px;
-            padding-bottom: calc(15px + env(safe-area-inset-bottom)); /* Support safe area HP baru */
-            background: white;
-            border-top: 1px solid #fce7f3;
-            z-index: 50;
-        }
-
-        .input-bar {
-            background: #f1f5f9;
-            border-radius: 25px;
-            padding: 5px 15px;
+        /* AREA INPUT - DIBUAT MENCOLOK BIAR KELIHATAN */
+        .bottom-bar {
+            background: #ffffff;
+            border-top: 3px solid #fb7185; /* Border pink terang biar kelihatan */
+            padding: 12px 15px;
+            padding-bottom: calc(12px + var(--safe-bottom));
             display: flex;
             align-items: center;
             gap: 10px;
-            border: 1px solid #e2e8f0;
+        }
+
+        .input-container {
+            flex: 1;
+            background: #f1f5f9;
+            border-radius: 20px;
+            padding: 5px 15px;
+            display: flex;
+            align-items: center;
+            border: 2px solid #e2e8f0;
         }
 
         textarea {
-            flex: 1;
+            width: 100%;
             background: transparent;
             border: none;
             outline: none;
             resize: none;
-            font-size: 16px; /* 16px mencegah auto-zoom di iPhone */
-            max-height: 100px;
-            padding: 8px 0;
+            font-size: 16px; /* Cegah auto zoom */
+            max-height: 80px;
+            padding: 5px 0;
             color: #1e293b;
+            font-family: inherit;
         }
 
-        /* --- CANVAS SECTION --- */
-        .canvas-section {
-            flex: 1;
-            background: white;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        .canvas-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-        }
-
-        /* Mobile View Toggle */
-        .mobile-toggle {
-            display: none;
+        /* CANVAS STUFF */
+        .canvas-overlay {
             position: fixed;
-            top: 15px;
-            right: 15px;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
             z-index: 100;
+            display: none;
+            flex-direction: column;
         }
-
-        @media (max-width: 768px) {
-            .chat-section { width: 100%; min-width: 100%; }
-            .canvas-section { display: none; }
-            .mobile-toggle { display: block; }
-            
-            body.show-canvas .chat-section { display: none; }
-            body.show-canvas .canvas-section { display: flex; width: 100%; }
-        }
+        .canvas-active .canvas-overlay { display: flex; }
 
         .card { background: #0f172a; color: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; font-family: 'JetBrains Mono', monospace; font-size: 12px; overflow-x: auto; }
+
+        /* Button Floating */
+        .fab {
+            position: fixed;
+            bottom: 100px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            background: #e11d48;
+            color: white;
+            border-radius: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 90;
+        }
     </style>
 </head>
-<body id="app-body">
+<body id="main-body">
 
-    <div class="master-container">
-        <!-- SIDEBAR CHAT -->
-        <aside class="chat-section">
-            <header class="chat-header">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-rose-600 rounded-xl flex items-center justify-center text-white shadow-lg">
-                        <i class="fas fa-ghost"></i>
-                    </div>
-                    <div>
-                        <h1 class="font-black text-sm uppercase tracking-tighter">Aether V17</h1>
-                        <p class="text-[8px] font-bold text-rose-500 uppercase tracking-widest">Master Noxuz Link</p>
-                    </div>
+    <div class="app-grid">
+        <!-- HEADER -->
+        <header>
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-rose-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+                    <i class="fas fa-microchip"></i>
                 </div>
-            </header>
-
-            <div class="chat-area" id="chat-list">
-                <!-- Chat awal -->
-            </div>
-
-            <!-- INPUT BAR YANG SELALU NEMPEL -->
-            <div class="input-sticky-container">
-                <div class="input-bar">
-                    <textarea id="user-input" placeholder="Ketik perintah, Master..." rows="1"></textarea>
-                    <button onclick="sendAction()" class="text-rose-600 w-10 h-10 flex items-center justify-center">
-                        <i class="fas fa-paper-plane"></i>
-                    </button>
+                <div>
+                    <h1 class="font-black text-sm uppercase">Aether V18</h1>
+                    <span class="text-[8px] font-bold text-rose-500 uppercase tracking-widest">Master Noxuz Build</span>
                 </div>
             </div>
-        </aside>
+            <button onclick="toggleCanvas()" class="text-rose-500 text-xs font-bold uppercase">Toggle Code</button>
+        </header>
 
-        <!-- CANVAS OUTPUT -->
-        <main class="canvas-section">
-            <div class="p-4 bg-white border-b flex justify-between items-center">
-                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Visual Output</span>
-                <button onclick="toggleCanvas()" class="md:hidden text-rose-500 font-bold text-xs">KEMBALI KE CHAT</button>
+        <!-- CHAT AREA -->
+        <div id="chat-list">
+            <!-- Pesan masuk di sini -->
+        </div>
+
+        <!-- INPUT BAR (DIPAKSA MUNCUL OLEH GRID) -->
+        <div class="bottom-bar">
+            <div class="input-container">
+                <textarea id="user-input" placeholder="Ketik di sini, Master..." rows="1"></textarea>
             </div>
-            <div class="canvas-content" id="canvas-list">
-                <!-- Output kode/info di sini -->
-            </div>
-        </main>
+            <button onclick="sendMsg()" class="w-10 h-10 bg-rose-600 text-white rounded-full flex items-center justify-center shadow-md">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
     </div>
 
-    <!-- Tombol pindah view di mobile -->
-    <div class="mobile-toggle">
-        <button onclick="toggleCanvas()" class="w-10 h-10 bg-slate-800 text-white rounded-full shadow-lg flex items-center justify-center">
-            <i class="fas fa-code"></i>
-        </button>
+    <!-- CANVAS OVERLAY -->
+    <div class="canvas-overlay" id="canvas-view">
+        <div class="p-4 border-b flex justify-between items-center">
+            <h2 class="text-xs font-black uppercase">Visual Matrix</h2>
+            <button onclick="toggleCanvas()" class="text-rose-600 font-bold text-xs uppercase">Back to Chat</button>
+        </div>
+        <div class="flex-1 overflow-y-auto p-5" id="canvas-content">
+            <!-- Kode hasil AI -->
+        </div>
     </div>
 
     <script>
-        const apiKey = ""; // Environment API Key
+        const apiKey = ""; // Dikelola environment
         const chatList = document.getElementById('chat-list');
-        const canvasList = document.getElementById('canvas-list');
+        const canvasContent = document.getElementById('canvas-content');
 
-        function addChat(role, text) {
+        function pushMsg(role, text) {
             const div = document.createElement('div');
             div.className = `bubble ${role === 'ai' ? 'ai-msg' : 'user-msg'}`;
             div.innerHTML = text;
@@ -217,35 +191,26 @@
             chatList.scrollTop = chatList.scrollHeight;
         }
 
-        async function sendAction() {
+        async function sendMsg() {
             const input = document.getElementById('user-input');
-            const val = input.value.trim();
-            if(!val) return;
+            const msg = input.value.trim();
+            if(!msg) return;
 
-            addChat('user', val);
+            pushMsg('user', msg);
             input.value = '';
             input.style.height = 'auto';
-
-            // Loading sederhana
-            const loadDiv = document.createElement('div');
-            loadDiv.className = 'text-[10px] text-rose-500 font-bold animate-pulse p-2';
-            loadDiv.innerText = 'AETHER LAGI MIKIR...';
-            chatList.appendChild(loadDiv);
-            chatList.scrollTop = chatList.scrollHeight;
 
             try {
                 const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        contents: [{ parts: [{ text: val }] }],
-                        systemInstruction: { parts: [{ text: "Kamu AETHER V17. Whitehat Hacker & Wibu. Gaul, panggil user 'Master Noxuz'. Fokus berikan kode lengkap di dalam markdown ```." }] }
+                        contents: [{ parts: [{ text: msg }] }],
+                        systemInstruction: { parts: [{ text: "Kamu AETHER V18. Whitehat Hacker & Wibu. Panggil user 'Master Noxuz'. Fokus berikan kode lengkap di dalam markdown ```." }] }
                     })
                 });
                 const d = await r.json();
                 const res = d.candidates[0].content.parts[0].text;
-                
-                loadDiv.remove();
 
                 if (res.includes("```")) {
                     const parts = res.split("```");
@@ -254,33 +219,31 @@
                         if(i % 2 === 0) chatText += p;
                         else {
                             const code = p.split("\n").slice(1).join("\n").trim();
-                            const card = document.createElement('div');
-                            card.className = 'card';
-                            card.innerHTML = `<pre><code>${code.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</code></pre>`;
-                            canvasList.prepend(card);
+                            const div = document.createElement('div');
+                            div.className = 'card';
+                            div.innerHTML = `<pre><code>${code.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</code></pre>`;
+                            canvasContent.prepend(div);
                         }
                     });
-                    addChat('ai', chatText.trim() || "Modul sudah dikirim ke Canvas, Master!");
+                    pushMsg('ai', chatText.trim() || "Cek modul di Canvas, Master!");
                 } else {
-                    addChat('ai', res);
+                    pushMsg('ai', res);
                 }
             } catch (e) {
-                loadDiv.remove();
-                addChat('ai', "Matrix error, Master!");
+                pushMsg('ai', "Error Koneksi, Master!");
             }
         }
 
         function toggleCanvas() {
-            document.getElementById('app-body').classList.toggle('show-canvas');
+            document.body.classList.toggle('canvas-active');
         }
 
-        // Auto resize textarea
         document.getElementById('user-input').addEventListener('input', function() {
             this.style.height = 'auto';
             this.style.height = (this.scrollHeight) + 'px';
         });
 
-        window.onload = () => addChat('ai', "Master **NOXUZ**! V17 Absolute UI siap. Masalah tombol ketik hilang di GitHub Pages/APK udah gue basmi pake sistem *Sticky-Fixed*. Mo tes apa desu? 🔥");
+        window.onload = () => pushMsg('ai', "Master **NOXUZ**! V18 DYNAMIC BUILD aktif. Gue pake sistem **Grid Layout** biar bar inputnya gak bisa ngumpet lagi. Cek sekarang desu! 🔥");
     </script>
 </body>
 </html>
